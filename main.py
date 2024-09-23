@@ -1,40 +1,81 @@
-import pandas as pd
-import openai
-import os
+from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
+from langchain.utils.openai_functions import convert_pydantic_to_openai_function
+from langchain.agents import tool
+from openai import OpenAI
+import random
 
 _ = load_dotenv()
 
-
-def get_completion(prompt, model="gpt-3.5-turbo"):
-    messages = [{"role": "user", "content": prompt}]
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=messages,
-        temperature=0,
-    )
-    return response.choices[0].message["content"]
+client = OpenAI()
 
 
-text = f"""
-You should express what you want a model to do by \
-providing instructions that are as clear and \
-specific as you can possibly make them. \
-This will guide the model towards the desired output, \
-and reduce the chances of receiving irrelevant \
-or incorrect responses. Don't confuse writing a \
-clear prompt with writing a short prompt. \
-In many cases, longer prompts provide more clarity \
-and context for the model, which can lead to \
-more detailed and relevant outputs.
-"""
-prompt = f"""
-Summarize the text delimited by triple backticks \
-into a single sentence.
-```{text}```
-"""
-response = get_completion(prompt)
-print(response)
+class Agent:
+    def __init__(self, system=""):
+        self.system = system
+        self.messages = []
+        if self.system:
+            self.messages.append({"role": "system", "content": system})
 
+    def __call__(self, message):
+        self.messages.append({"role": "user", "content": message})
+        result = self.execute()
+        self.messages.append({"role": "assistant", "content": result})
+        return result
+
+    def execute(self):
+        completion = client.chat.completions.create(
+            model="gpt-4o",
+            temperature=0,
+            messages=self.messages)
+        return completion.choices[0].message.content
+
+
+prompt = """
+You run in a loop of Thought, Action, PAUSE, Observation.
+At the end of the loop you output an Answer
+Use Thought to describe your thoughts about the question you have been asked.
+Use Action to run one of the actions available to you - then return PAUSE.
+Observation will be the result of running those actions.
+
+Your available actions are:
+
+random_outfit_one_garment:
+Use the user input and extract type of garment that the user gave and select if it is t_shirt, pants or shoes.
+Then give random color for the other two garment that combine with the first garment given by the user.
+
+random_outfit_two_garment:
+Use the user input and extract type of garment that the user gave and select if it is t_shirt, pants or shoes.
+Then give random color for the other garment that combine with the garments given by the user.
+
+Example session:
+
+Question: I have a blue t-shirt?
+Thought: I should select that is a blue t-shirt and output random color that combine for the pants and shoes.
+Action: Random outfit one garment: Blue T-shirt
+PAUSE
+
+You will be called again with this:
+
+Observation: A black pants and a white shoes combine with the garments given by the user.
+
+You then output:
+
+Answer: A black pants and a white shoes combine perfectly with the garments given that was a blue T-shirt.
+""".strip()
+
+
+def random_outfit_one_garment(user_input):
+    garment_type = "t-shirt" if "t-shirt" in user_input else "pants" if "pants" in user_input else "shoes"
+    colors = ["red", "blue", "green", "black", "white"]
+    random_colors = random.sample(colors, 2)
+    return {
+        "garment": garment_type,
+        "combination": {
+            "color_1": random_colors[0],
+            "color_2": random_colors[1]
+        }
+    }
 
 
