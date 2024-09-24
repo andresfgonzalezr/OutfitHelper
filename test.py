@@ -1,6 +1,7 @@
 import openai
 from dotenv import load_dotenv
 
+
 _ = load_dotenv()
 client = openai.OpenAI()
 
@@ -9,8 +10,6 @@ def outfit_helper(user_input: str):
     user_prompt = f'''you are a fashion expert, you have to give advice to the user, in the user_input you are going to find a garment, you have to define what it is
     e.g t-shirt, pants, shoes or other type
     also extract the color and the fit of the garment
-    e.g black oversize t-shirt, blue jean baggy pants.
-    you can receive more than one type of garment and also include it and give the advice based on both of them
     e.g black oversize t-shirt, blue jean baggy pants.
     then give an advice to the user for the rest of the garment that are missing.
     e.g a blue oversize t-shirt, could combine with a black jean baggy pants, and white sneakers.
@@ -32,6 +31,8 @@ def outfit_helper(user_input: str):
 
 
 if __name__ == '__main__':
-    user_input = "i have a pink oversize t-shirt and a black sneakers"
+    user_input = "i have a pink oversize t-shirt"
     print(outfit_helper(user_input))
+
+
 
